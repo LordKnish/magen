@@ -96,6 +96,19 @@ export default function MapView({ lang }: { lang: Language }) {
     return names;
   }, [zones, alertCitySet]);
 
+  // Find which zones contain the user's selected cities
+  const selectedZoneNames = useMemo(() => {
+    const selectedSet = new Set(settings.selectedCities);
+    const names = new Set<string>();
+    for (const zone of zones) {
+      const hasSelected = zone.cities.some((c) => selectedSet.has(c.value || c.name));
+      if (hasSelected) {
+        names.add(zone.name);
+      }
+    }
+    return names;
+  }, [zones, settings.selectedCities]);
+
   // Build GeoJSON features from polygons
   const geoJsonData = useMemo(() => {
     if (!polygons) return null;
@@ -129,6 +142,7 @@ export default function MapView({ lang }: { lang: Language }) {
           id,
           zoneName: matchedZone,
           isActive: matchedZone ? activeZoneNames.has(matchedZone) : false,
+          isSelected: matchedZone ? selectedZoneNames.has(matchedZone) : false,
         },
         geometry: {
           type: 'Polygon' as const,
@@ -141,7 +155,7 @@ export default function MapView({ lang }: { lang: Language }) {
       type: 'FeatureCollection' as const,
       features,
     };
-  }, [polygons, zones, activeZoneNames]);
+  }, [polygons, zones, activeZoneNames, selectedZoneNames]);
 
   // Selected city markers
   const selectedCityMarkers = useMemo(() => {
@@ -217,16 +231,35 @@ export default function MapView({ lang }: { lang: Language }) {
 
         {geoJsonData && (
           <GeoJSON
-            key={JSON.stringify(activeZoneNames.size)}
+            key={`${activeZoneNames.size}-${selectedZoneNames.size}`}
             data={geoJsonData as GeoJSON.FeatureCollection}
             style={(feature) => {
               const isActive = feature?.properties?.isActive;
+              const isSelected = feature?.properties?.isSelected;
+              if (isActive) {
+                return {
+                  color: '#ef4444',
+                  weight: 2,
+                  fillColor: '#ef4444',
+                  fillOpacity: 0.4,
+                  className: 'alert-zone-active',
+                };
+              }
+              if (isSelected) {
+                return {
+                  color: '#4ade80',
+                  weight: 1.5,
+                  fillColor: '#1a3a2a',
+                  fillOpacity: 0.35,
+                  className: '',
+                };
+              }
               return {
-                color: isActive ? '#ef4444' : '#3b5249',
-                weight: isActive ? 2 : 0.5,
-                fillColor: isActive ? '#ef4444' : '#2d3d34',
-                fillOpacity: isActive ? 0.4 : 0.08,
-                className: isActive ? 'alert-zone-active' : '',
+                color: '#2a3540',
+                weight: 0.3,
+                fillColor: '#1a2028',
+                fillOpacity: 0.15,
+                className: '',
               };
             }}
             onEachFeature={(feature, layer) => {
