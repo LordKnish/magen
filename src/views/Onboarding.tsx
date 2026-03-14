@@ -78,35 +78,36 @@ export default function Onboarding() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center p-6">
         {step === 'welcome' && (
-          <div className="text-center max-w-sm space-y-6">
-            <div className="w-20 h-20 mx-auto rounded-full bg-green-950 border-2 border-green-400 flex items-center justify-center">
-              <Shield size={36} className="text-green-400" />
+          <div className="text-center max-w-sm" dir="ltr">
+            <div className="w-24 h-24 mx-auto rounded-2xl bg-green-950/60 border border-green-500/30 flex items-center justify-center mb-8">
+              <Shield size={44} className="text-green-400" />
             </div>
-            <div className="space-y-1">
-              <h1 className="text-2xl font-black">ברוכים הבאים למגן</h1>
-              <h2 className="text-lg text-[var(--text-secondary)]">Welcome to Magen</h2>
-              <h2 className="text-lg text-[var(--text-secondary)]">Добро пожаловать в Маген</h2>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-[var(--text-secondary)] leading-relaxed" dir="rtl">
-                התרעות שולחן עבודה של פיקוד העורף
-              </p>
-              <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-                Desktop alerts for Pikud HaOref civil defense warnings
-              </p>
-              <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-                Оповещения гражданской обороны Пикуд а-Орэф
-              </p>
-            </div>
-            <p className="text-xs text-[var(--text-muted)] italic">
-              Unofficial tool · כלי לא רשמי · Неофициальный инструмент
+
+            <h1 className="text-4xl font-black tracking-tight text-[var(--text-primary)] mb-1">MAGEN</h1>
+            <p className="text-lg font-bold text-green-400 mb-6" dir="rtl">מגן</p>
+
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-8">
+              Real-time civil defense alerts from Pikud HaOref.
+              <br />
+              <span className="text-[var(--text-muted)]">Desktop notifications, sound alerts, and live map.</span>
             </p>
+
+            <div className="flex items-center justify-center gap-3 mb-8">
+              <span className="text-xs text-[var(--text-muted)] px-2 py-1 rounded bg-[var(--bg-secondary)] border border-[var(--border)]">English</span>
+              <span className="text-xs text-[var(--text-muted)] px-2 py-1 rounded bg-[var(--bg-secondary)] border border-[var(--border)]" dir="rtl">עברית</span>
+              <span className="text-xs text-[var(--text-muted)] px-2 py-1 rounded bg-[var(--bg-secondary)] border border-[var(--border)]">Русский</span>
+            </div>
+
             <button
               onClick={next}
-              className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition-colors"
+              className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition-colors mb-4"
             >
-              Continue · המשך · Далее
+              Get Started
             </button>
+
+            <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
+              Unofficial tool — always follow official Pikud HaOref guidance
+            </p>
           </div>
         )}
 
