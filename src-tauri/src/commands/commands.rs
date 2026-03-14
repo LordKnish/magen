@@ -1,4 +1,5 @@
-use tauri::State;
+use tauri::{AppHandle, State};
+use tauri_plugin_store::StoreExt;
 use crate::state::{AppState, ConnectionStatus};
 use crate::models::alert::Alert;
 use crate::models::city::{City, Zone};
@@ -11,8 +12,20 @@ pub async fn get_settings(state: State<'_, AppState>) -> Result<Settings, AppErr
 }
 
 #[tauri::command]
-pub async fn save_settings(settings: Settings, state: State<'_, AppState>) -> Result<(), AppError> {
-    *state.settings.write().await = settings;
+pub async fn save_settings(
+    app: AppHandle,
+    settings: Settings,
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    *state.settings.write().await = settings.clone();
+
+    // Persist to disk via tauri-plugin-store
+    let store = app.store("settings.json")
+        .map_err(|e| AppError::Settings(format!("Failed to open store: {}", e)))?;
+    let value = serde_json::to_value(&settings)?;
+    store.set("settings", value);
+    // auto_save is enabled by default, so no explicit save() needed
+
     Ok(())
 }
 

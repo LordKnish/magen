@@ -6,6 +6,7 @@ use magen_lib::state::AppState;
 use magen_lib::tray;
 use magen_lib::commands::commands;
 use tauri_plugin_autostart::MacosLauncher;
+use tauri_plugin_store::StoreExt;
 
 async fn polling_loop(app: tauri::AppHandle) {
     use magen_lib::{state, services};
@@ -106,6 +107,16 @@ fn main() {
             commands::get_polygons,
         ])
         .setup(|app| {
+            // Load persisted settings from store
+            if let Ok(store) = app.store("settings.json") {
+                if let Some(val) = store.get("settings") {
+                    if let Ok(settings) = serde_json::from_value::<magen_lib::models::settings::Settings>(val) {
+                        let state = app.state::<AppState>();
+                        *state.settings.blocking_write() = settings;
+                    }
+                }
+            }
+
             tray::setup_tray(app)?;
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
