@@ -111,11 +111,13 @@ export default function MapView({ lang }: { lang: Language }) {
 
   // Build city ID lookup maps
   const cityIdMap = useMemo(() => {
-    const byId: Record<string, { name: string; value: string; zone: string; countdown: number }> = {};
+    const byId: Record<string, { name: string; name_en: string; name_ru: string; value: string; zone: string; countdown: number }> = {};
     for (const zone of zones) {
       for (const city of zone.cities) {
         byId[String(city.id)] = {
           name: city.name,
+          name_en: city.name_en,
+          name_ru: city.name_ru,
           value: city.value || city.name,
           zone: zone.name,
           countdown: city.countdown,
@@ -255,32 +257,35 @@ export default function MapView({ lang }: { lang: Language }) {
                 };
               }
               return {
-                color: '#2a3540',
-                weight: 0.3,
-                fillColor: '#1a2028',
-                fillOpacity: 0.15,
+                color: '#3a4a58',
+                weight: 0.5,
+                fillColor: '#1e2a35',
+                fillOpacity: 0.3,
                 className: '',
               };
             }}
             onEachFeature={(feature, layer) => {
-              const cityValue = feature.properties?.cityValue;
+              const polyId = feature.properties?.id;
               const zoneName = feature.properties?.zoneName;
               const isActive = feature.properties?.isActive;
               const isSelected = feature.properties?.isSelected;
 
-              if (cityValue && cityIdMap[feature.properties?.id]) {
-                const cityInfo = cityIdMap[feature.properties.id];
-                const cityDisplay = lang === 'he' ? cityInfo.name : (useCityStore.getState().cityDb[cityValue]?.name_en || cityInfo.name);
+              if (polyId && cityIdMap[polyId]) {
+                const cityInfo = cityIdMap[polyId];
+                const cityDisplay = lang === 'he' ? cityInfo.name
+                  : lang === 'ru' ? (cityInfo.name_ru || cityInfo.name_en || cityInfo.name)
+                  : (cityInfo.name_en || cityInfo.name);
                 const zoneDisplay = zoneName ? getZoneDisplayName(zoneName) : '';
 
                 layer.bindPopup(`
-                  <div style="min-width: 120px;">
-                    <strong>${cityDisplay}</strong>
-                    ${isActive ? '<span style="color: #ef4444; margin-left: 6px;">⚠ ACTIVE</span>' : ''}
-                    ${isSelected ? '<span style="color: #4ade80; margin-left: 6px;">✓</span>' : ''}
-                    <br/>
-                    <small style="color: #888;">${zoneDisplay}</small><br/>
-                    <small>${t('alert.shelter', lang)}: ${cityInfo.countdown}s</small>
+                  <div style="min-width: 140px; font-family: system-ui, sans-serif;">
+                    <div style="font-size: 14px; font-weight: 700; margin-bottom: 4px;">
+                      ${cityDisplay}
+                      ${isActive ? '<span style="color: #ef4444; font-size: 12px;"> ⚠ ALERT</span>' : ''}
+                      ${isSelected ? '<span style="color: #4ade80; font-size: 12px;"> ✓ Monitored</span>' : ''}
+                    </div>
+                    <div style="font-size: 11px; color: #888; margin-bottom: 2px;">${zoneDisplay}</div>
+                    <div style="font-size: 12px;">${t('alert.shelter', lang)}: <strong>${cityInfo.countdown}s</strong></div>
                   </div>
                 `);
               }
