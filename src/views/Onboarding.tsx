@@ -8,9 +8,9 @@ const langMap: Record<string, Language> = {
   Hebrew: 'he', English: 'en', Russian: 'ru',
 };
 
-type Step = 'welcome' | 'language' | 'cities' | 'notifications' | 'done';
+type Step = 'welcome' | 'cities' | 'notifications' | 'done';
 
-const STEPS: Step[] = ['welcome', 'language', 'cities', 'notifications', 'done'];
+const STEPS: Step[] = ['welcome', 'cities', 'notifications', 'done'];
 
 export default function Onboarding() {
   const { settings, save } = useSettingsStore();
@@ -78,79 +78,53 @@ export default function Onboarding() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center p-6">
         {step === 'welcome' && (
-          <div className="text-center max-w-sm" dir="ltr">
-            <div className="w-24 h-24 mx-auto rounded-2xl bg-green-950/60 border border-green-500/30 flex items-center justify-center mb-8">
-              <Shield size={44} className="text-green-400" />
+          <div className="text-center max-w-sm w-full" dir="ltr">
+            <div className="w-20 h-20 mx-auto rounded-2xl bg-green-950/60 border border-green-500/30 flex items-center justify-center mb-6">
+              <Shield size={40} className="text-green-400" />
             </div>
 
-            <h1 className="text-4xl font-black tracking-tight text-[var(--text-primary)] mb-1">MAGEN</h1>
-            <p className="text-lg font-bold text-green-400 mb-6" dir="rtl">מגן</p>
-
+            <h1 className="text-3xl font-black tracking-tight text-[var(--text-primary)] mb-2">MAGEN</h1>
             <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-8">
-              Real-time civil defense alerts from Pikud HaOref.
-              <br />
-              <span className="text-[var(--text-muted)]">Desktop notifications, sound alerts, and live map.</span>
+              Real-time civil defense alerts from Pikud HaOref
             </p>
 
-            <div className="flex items-center justify-center gap-3 mb-8">
-              <span className="text-xs text-[var(--text-muted)] px-2 py-1 rounded bg-[var(--bg-secondary)] border border-[var(--border)]">English</span>
-              <span className="text-xs text-[var(--text-muted)] px-2 py-1 rounded bg-[var(--bg-secondary)] border border-[var(--border)]" dir="rtl">עברית</span>
-              <span className="text-xs text-[var(--text-muted)] px-2 py-1 rounded bg-[var(--bg-secondary)] border border-[var(--border)]">Русский</span>
+            <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-3">Select Language</div>
+            <div className="space-y-2 mb-6">
+              {([
+                { value: 'Hebrew' as const, label: 'עברית', sub: 'Hebrew' },
+                { value: 'English' as const, label: 'English', sub: '' },
+                { value: 'Russian' as const, label: 'Русский', sub: 'Russian' },
+              ]).map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setSelectedLang(opt.value)}
+                  className={`w-full py-3 px-4 rounded-lg border transition-all flex items-center justify-between ${
+                    selectedLang === opt.value
+                      ? 'border-green-500 bg-green-500/10'
+                      : 'border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--text-muted)]'
+                  }`}
+                >
+                  <span className={`text-base font-semibold ${selectedLang === opt.value ? 'text-green-400' : 'text-[var(--text-primary)]'}`}>
+                    {opt.label}
+                  </span>
+                  {opt.sub && <span className="text-xs text-[var(--text-muted)]">{opt.sub}</span>}
+                  {selectedLang === opt.value && (
+                    <span className="w-2 h-2 rounded-full bg-green-400" />
+                  )}
+                </button>
+              ))}
             </div>
 
             <button
               onClick={next}
               className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition-colors mb-4"
             >
-              Get Started
+              {lang === 'he' ? 'המשך' : lang === 'ru' ? 'Далее' : 'Continue'}
             </button>
 
             <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
-              Unofficial tool — always follow official Pikud HaOref guidance
+              {lang === 'he' ? 'כלי לא רשמי — עקבו אחר הנחיות פיקוד העורף' : lang === 'ru' ? 'Неофициальный — следуйте указаниям Пикуд а-Орэф' : 'Unofficial tool — always follow official Pikud HaOref guidance'}
             </p>
-          </div>
-        )}
-
-        {step === 'language' && (
-          <div className="text-center max-w-sm space-y-6 w-full">
-            <Globe size={32} className="text-green-400 mx-auto" />
-            <h2 className="text-xl font-bold">{t('onboarding.selectLanguage', lang)}</h2>
-            <div className="space-y-3">
-              {([
-                { value: 'Hebrew' as const, label: 'עברית', sub: 'Hebrew' },
-                { value: 'English' as const, label: 'English', sub: 'English' },
-                { value: 'Russian' as const, label: 'Русский', sub: 'Russian' },
-              ]).map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setSelectedLang(opt.value)}
-                  className={`w-full py-4 px-4 rounded-lg border-2 text-left transition-all ${
-                    selectedLang === opt.value
-                      ? 'border-green-400 bg-green-950/40'
-                      : 'border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--text-muted)]'
-                  }`}
-                >
-                  <div className="text-lg font-bold">{opt.label}</div>
-                  {opt.value !== 'English' && (
-                    <div className="text-xs text-[var(--text-muted)]">{opt.sub}</div>
-                  )}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={prev}
-                className="flex-1 py-3 bg-[var(--bg-secondary)] hover:bg-white/10 text-[var(--text-secondary)] font-bold rounded-lg transition-colors border border-[var(--border)]"
-              >
-                {lang === 'he' ? 'חזרה' : lang === 'ru' ? 'Назад' : 'Back'}
-              </button>
-              <button
-                onClick={next}
-                className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition-colors"
-              >
-                {lang === 'he' ? 'המשך' : lang === 'ru' ? 'Далее' : 'Continue'}
-              </button>
-            </div>
           </div>
         )}
 
