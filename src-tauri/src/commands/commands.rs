@@ -1,8 +1,8 @@
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_store::StoreExt;
 use tauri_plugin_autostart::ManagerExt;
 use crate::state::{AppState, ConnectionStatus};
-use crate::models::alert::Alert;
+use crate::models::alert::{Alert, AlertType, AlertState};
 use crate::models::city::{City, Zone};
 use crate::models::settings::Settings;
 use crate::error::AppError;
@@ -54,7 +54,26 @@ pub async fn get_connection_status(state: State<'_, AppState>) -> Result<Connect
 }
 
 #[tauri::command]
-pub async fn test_alert() -> Result<(), AppError> {
+pub async fn test_alert(app: AppHandle, state: State<'_, AppState>) -> Result<(), AppError> {
+    let now = chrono::Utc::now().timestamp();
+    let alert = Alert {
+        id: format!("test-{}", now),
+        alert_type: AlertType::Missiles,
+        state: AlertState::Active,
+        cities: vec!["\u{05ea}\u{05dc} \u{05d0}\u{05d1}\u{05d9}\u{05d1} - \u{05de}\u{05d6}\u{05e8}\u{05d7}".to_string()],
+        title: Some("Test Alert".to_string()),
+        timestamp: now,
+        expires_at: now + 90,
+    };
+
+    state.active_alerts.write().await.push(alert.clone());
+    let mut history = state.alert_history.write().await;
+    history.insert(0, alert.clone());
+    if history.len() > 100 { history.truncate(100); }
+    drop(history);
+
+    crate::services::notification::send_notification(&app, &alert);
+    let _ = app.emit("new-alert", &alert);
     Ok(())
 }
 
