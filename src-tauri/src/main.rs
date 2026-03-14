@@ -118,6 +118,18 @@ fn main() {
             }
 
             tray::setup_tray(app)?;
+
+            // Intercept window close -> minimize to tray instead of quit
+            if let Some(window) = app.get_webview_window("main") {
+                let window_clone = window.clone();
+                window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        let _ = window_clone.hide();
+                    }
+                });
+            }
+
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 polling_loop(handle).await;

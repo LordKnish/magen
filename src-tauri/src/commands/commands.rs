@@ -1,5 +1,6 @@
 use tauri::{AppHandle, State};
 use tauri_plugin_store::StoreExt;
+use tauri_plugin_autostart::ManagerExt;
 use crate::state::{AppState, ConnectionStatus};
 use crate::models::alert::Alert;
 use crate::models::city::{City, Zone};
@@ -25,6 +26,14 @@ pub async fn save_settings(
     let value = serde_json::to_value(&settings)?;
     store.set("settings", value);
     // auto_save is enabled by default, so no explicit save() needed
+
+    // Toggle autostart based on settings
+    let autolaunch = app.autolaunch();
+    if settings.auto_start {
+        let _ = autolaunch.enable();
+    } else {
+        let _ = autolaunch.disable();
+    }
 
     Ok(())
 }
