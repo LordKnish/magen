@@ -54,6 +54,12 @@ pub async fn search_cities(query: String, state: State<'_, AppState>) -> Result<
 }
 
 #[tauri::command]
+pub async fn get_polygons() -> Result<serde_json::Value, AppError> {
+    let bytes = include_bytes!("../../resources/polygons.json");
+    serde_json::from_slice(bytes).map_err(|e| AppError::Api(format!("Failed to parse polygons.json: {}", e)))
+}
+
+#[tauri::command]
 pub async fn get_all_zones(state: State<'_, AppState>) -> Result<Vec<Zone>, AppError> {
     let mut zone_map: std::collections::HashMap<String, Vec<City>> = std::collections::HashMap::new();
     for city in &state.cities {

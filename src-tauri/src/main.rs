@@ -103,6 +103,7 @@ fn main() {
             commands::test_alert,
             commands::search_cities,
             commands::get_all_zones,
+            commands::get_polygons,
         ])
         .setup(|app| {
             tray::setup_tray(app)?;

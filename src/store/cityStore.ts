@@ -10,6 +10,8 @@ interface City {
   zone_en: string;
   zone_ru: string;
   countdown: number;
+  lat: number;
+  lng: number;
   value: string;
 }
 

@@ -1,6 +1,6 @@
 import {
   Siren, AlertTriangle, Activity, Radiation, Waves,
-  Plane, FlaskConical, ShieldAlert, Newspaper, GraduationCap, CircleCheck,
+  Plane, FlaskConical, ShieldAlert, Newspaper,
 } from 'lucide-react';
 
 export const ALERT_TYPE_CONFIG: Record<string, {
