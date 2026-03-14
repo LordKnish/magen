@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { useSettingsStore } from '../store/settingsStore';
 import CityFilter from '../components/CityFilter';
 import { type Language, t } from '../i18n';
@@ -42,16 +43,45 @@ function Select<T extends string>({
   options: { value: T; label: string }[];
   onChange: (v: T) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const current = options.find((o) => o.value === value);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value as T)}
-      className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-md px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:border-green-400/50"
-    >
-      {options.map((o) => (
-        <option key={o.value} value={o.value} className="bg-[#1a1f2e] text-[#e2e8f0]">{o.label}</option>
-      ))}
-    </select>
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-md px-3 py-1.5 text-sm text-[var(--text-primary)] hover:border-[var(--text-muted)] transition-colors min-w-[100px] justify-between"
+      >
+        <span>{current?.label ?? value}</span>
+        <ChevronDown size={14} className={`text-[var(--text-muted)] transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-50 bg-[var(--bg-card)] border border-[var(--border)] rounded-md shadow-lg shadow-black/40 overflow-hidden min-w-[120px]">
+          {options.map((o) => (
+            <button
+              key={o.value}
+              onClick={() => { onChange(o.value); setOpen(false); }}
+              className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                o.value === value
+                  ? 'bg-green-500/10 text-green-400'
+                  : 'text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
