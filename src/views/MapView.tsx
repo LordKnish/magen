@@ -109,44 +109,44 @@ export default function MapView({ lang }: { lang: Language }) {
     return names;
   }, [zones, settings.selectedCities]);
 
-  // Build GeoJSON features from polygons
+  // Build city ID lookup maps
+  const cityIdMap = useMemo(() => {
+    const byId: Record<string, { name: string; value: string; zone: string; countdown: number }> = {};
+    for (const zone of zones) {
+      for (const city of zone.cities) {
+        byId[String(city.id)] = {
+          name: city.name,
+          value: city.value || city.name,
+          zone: zone.name,
+          countdown: city.countdown,
+        };
+      }
+    }
+    return byId;
+  }, [zones]);
+
+  // Build GeoJSON features from polygons — matched per-city by ID
   const geoJsonData = useMemo(() => {
     if (!polygons) return null;
+    const selectedSet = new Set(settings.selectedCities);
 
     const features = Object.entries(polygons).map(([id, coords]) => {
-      // Find which zone this polygon belongs to by bounding box overlap with city positions
-      let matchedZone: string | null = null;
-      const lats = coords.map((c) => c[0]);
-      const lngs = coords.map((c) => c[1]);
-      const minLat = Math.min(...lats);
-      const maxLat = Math.max(...lats);
-      const minLng = Math.min(...lngs);
-      const maxLng = Math.max(...lngs);
-
-      for (const zone of zones) {
-        for (const city of zone.cities) {
-          const cityLat = city.lat ?? 0;
-          const cityLng = city.lng ?? 0;
-          if (cityLat === 0 && cityLng === 0) continue;
-          if (cityLat >= minLat && cityLat <= maxLat && cityLng >= minLng && cityLng <= maxLng) {
-            matchedZone = zone.name;
-            break;
-          }
-        }
-        if (matchedZone) break;
-      }
+      const city = cityIdMap[id];
+      const cityValue = city?.value;
+      const zoneName = city?.zone ?? null;
 
       return {
         type: 'Feature' as const,
         properties: {
           id,
-          zoneName: matchedZone,
-          isActive: matchedZone ? activeZoneNames.has(matchedZone) : false,
-          isSelected: matchedZone ? selectedZoneNames.has(matchedZone) : false,
+          zoneName,
+          cityValue,
+          isActive: cityValue ? alertCitySet.has(cityValue) : false,
+          isSelected: cityValue ? selectedSet.has(cityValue) : false,
         },
         geometry: {
           type: 'Polygon' as const,
-          coordinates: [coords.map(([lat, lng]) => [lng, lat])], // GeoJSON uses [lng, lat]
+          coordinates: [coords.map(([lat, lng]) => [lng, lat])],
         },
       };
     });
@@ -155,7 +155,7 @@ export default function MapView({ lang }: { lang: Language }) {
       type: 'FeatureCollection' as const,
       features,
     };
-  }, [polygons, zones, activeZoneNames, selectedZoneNames]);
+  }, [polygons, cityIdMap, alertCitySet, settings.selectedCities]);
 
   // Selected city markers
   const selectedCityMarkers = useMemo(() => {
@@ -231,7 +231,7 @@ export default function MapView({ lang }: { lang: Language }) {
 
         {geoJsonData && (
           <GeoJSON
-            key={`${activeZoneNames.size}-${selectedZoneNames.size}`}
+            key={`${alertCitySet.size}-${settings.selectedCities.length}`}
             data={geoJsonData as GeoJSON.FeatureCollection}
             style={(feature) => {
               const isActive = feature?.properties?.isActive;
@@ -263,24 +263,24 @@ export default function MapView({ lang }: { lang: Language }) {
               };
             }}
             onEachFeature={(feature, layer) => {
+              const cityValue = feature.properties?.cityValue;
               const zoneName = feature.properties?.zoneName;
-              if (zoneName) {
-                const displayName = getZoneDisplayName(zoneName);
-                const cities = getZoneCityList(zoneName);
-                const countdown = getZoneMinCountdown(zoneName);
-                const isActive = feature.properties?.isActive;
-                const cityListHtml = cities.slice(0, 10).map((c) => `<li>${c}</li>`).join('');
-                const moreCount = cities.length > 10 ? `<li>...+${cities.length - 10} more</li>` : '';
+              const isActive = feature.properties?.isActive;
+              const isSelected = feature.properties?.isSelected;
+
+              if (cityValue && cityIdMap[feature.properties?.id]) {
+                const cityInfo = cityIdMap[feature.properties.id];
+                const cityDisplay = lang === 'he' ? cityInfo.name : (useCityStore.getState().cityDb[cityValue]?.name_en || cityInfo.name);
+                const zoneDisplay = zoneName ? getZoneDisplayName(zoneName) : '';
 
                 layer.bindPopup(`
-                  <div style="min-width: 150px;">
-                    <strong>${displayName}</strong>
-                    ${isActive ? '<span style="color: #ef4444; margin-left: 8px;">ACTIVE</span>' : ''}
+                  <div style="min-width: 120px;">
+                    <strong>${cityDisplay}</strong>
+                    ${isActive ? '<span style="color: #ef4444; margin-left: 6px;">⚠ ACTIVE</span>' : ''}
+                    ${isSelected ? '<span style="color: #4ade80; margin-left: 6px;">✓</span>' : ''}
                     <br/>
-                    <small>${t('alert.shelter', lang)}: ${countdown}s</small>
-                    <ul style="margin: 4px 0; padding-left: 16px; font-size: 12px;">
-                      ${cityListHtml}${moreCount}
-                    </ul>
+                    <small style="color: #888;">${zoneDisplay}</small><br/>
+                    <small>${t('alert.shelter', lang)}: ${cityInfo.countdown}s</small>
                   </div>
                 `);
               }
