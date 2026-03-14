@@ -1,7 +1,10 @@
 {
   "name": "magen",
+  "version": "1.0.0",
+  "description": "Desktop alert application for Pikud HaOref (Israel Home Front Command)",
+  "author": "LordKnish",
+  "license": "MIT",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

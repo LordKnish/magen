@@ -1,73 +1,90 @@
-# React + TypeScript + Vite
+# Magen
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Desktop alert application for Pikud HaOref (Israel Home Front Command). Magen delivers real-time rocket and emergency alerts with native notifications, audio warnings, and a fullscreen overlay so you never miss a critical alert.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Real-time alerts** — polls the official Pikud HaOref API every few seconds
+- **Native notifications** — OS-level notifications for every alert
+- **Audio sirens** — plays siren sounds with configurable repeat (once, twice, continuous)
+- **Fullscreen overlay** — always-on-top popup showing affected cities on an SVG map
+- **Interactive map** — Leaflet-based map view with alert zone overlays
+- **Alert history** — browse past alerts with type filtering
+- **City selection** — choose which cities to monitor, grouped by zone
+- **Multi-language** — Hebrew, English, and Russian UI
+- **Themes** — Light, Dark, and Auto (system) themes
+- **Minimize to tray** — closing the window hides to the system tray
+- **Autostart** — optionally launch on system boot
+- **Proxy support** — route traffic through HTTP or SOCKS proxy for geo-blocked regions
+- **Persistent settings** — all preferences saved to disk
 
-## React Compiler
+## Installation
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Download
 
-## Expanding the ESLint configuration
+Download the latest release for your platform from the [Releases](https://github.com/LordKnish/magen/releases) page.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Build from source
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+#### Prerequisites
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- [Node.js](https://nodejs.org/) (v18+)
+- [Rust](https://www.rust-lang.org/tools/install) (stable)
+- [Tauri CLI](https://v2.tauri.app/start/prerequisites/)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+#### Steps
+
+```bash
+# Clone the repository
+git clone https://github.com/LordKnish/magen.git
+cd magen
+
+# Install frontend dependencies
+npm install
+
+# Build the application
+npm run tauri build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The built application will be in `src-tauri/target/release/bundle/`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Architecture
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Magen is built with [Tauri v2](https://v2.tauri.app/), combining a Rust backend with a React + TypeScript frontend.
+
+**Backend (Rust)**
+- HTTP poller fetching alerts from the Pikud HaOref API
+- Alert processor with deduplication, expiry, and all-clear detection
+- Sound playback via rodio
+- Native OS notifications via tauri-plugin-notification
+- Settings persistence via tauri-plugin-store
+- System tray with dynamic status icons
+
+**Frontend (React + TypeScript)**
+- Dashboard with active alert cards and countdown timers
+- Settings panel with searchable city/zone selector
+- Alert history view with filtering
+- Interactive Leaflet map with alert zone polygons
+- Fullscreen overlay popup window
+- First-run onboarding wizard
+- Zustand for state management, Tailwind CSS for styling
+
+## Configuration
+
+Open the Settings tab to configure:
+
+- **Cities** — select which cities/zones to monitor
+- **Language** — Hebrew, English, or Russian
+- **Theme** — Light, Dark, or Auto
+- **Sound repeat** — Off, Once, Twice, Thrice, or Continuous
+- **Overlay** — enable/disable the fullscreen overlay popup
+- **Autostart** — launch Magen on system boot
+- **Proxy** — set an HTTP/SOCKS proxy URL (useful outside Israel)
+
+## Disclaimer
+
+Magen is an **unofficial** tool and is not affiliated with or endorsed by Pikud HaOref or the Israel Defense Forces. This software is provided as-is for informational purposes. **Always follow official guidance and instructions from Pikud HaOref.** Do not rely solely on this application for life-safety decisions.
+
+## License
+
+[MIT](LICENSE) -- Copyright 2026 LordKnish
