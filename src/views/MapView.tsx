@@ -211,8 +211,8 @@ export default function MapView({ lang }: { lang: Language }) {
         zoomControl={true}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         />
 
         {geoJsonData && (
@@ -222,10 +222,10 @@ export default function MapView({ lang }: { lang: Language }) {
             style={(feature) => {
               const isActive = feature?.properties?.isActive;
               return {
-                color: isActive ? '#ef4444' : '#4ade80',
-                weight: isActive ? 2 : 1,
-                fillColor: isActive ? '#ef4444' : '#4ade80',
-                fillOpacity: isActive ? 0.4 : 0.05,
+                color: isActive ? '#ef4444' : '#3b5249',
+                weight: isActive ? 2 : 0.5,
+                fillColor: isActive ? '#ef4444' : '#2d3d34',
+                fillOpacity: isActive ? 0.4 : 0.08,
                 className: isActive ? 'alert-zone-active' : '',
               };
             }}

@@ -49,7 +49,7 @@ function Select<T extends string>({
       className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-md px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:border-green-400/50"
     >
       {options.map((o) => (
-        <option key={o.value} value={o.value}>{o.label}</option>
+        <option key={o.value} value={o.value} className="bg-[#1a1f2e] text-[#e2e8f0]">{o.label}</option>
       ))}
     </select>
   );
