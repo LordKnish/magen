@@ -38,13 +38,28 @@ export default function Onboarding() {
   };
 
   const finish = async () => {
-    await save({
-      language: selectedLang,
-      selectedCities,
-      soundRepeat: soundEnabled ? 'Twice' : 'Off',
-      overlayEnabled,
-      firstRunComplete: true,
-    });
+    try {
+      await save({
+        language: selectedLang,
+        selectedCities,
+        soundRepeat: soundEnabled ? 'Twice' : 'Off',
+        overlayEnabled,
+        firstRunComplete: true,
+      });
+    } catch (e) {
+      console.error('Failed to save settings:', e);
+      // Force the state update even if backend save fails
+      useSettingsStore.setState({
+        settings: {
+          ...settings,
+          language: selectedLang,
+          selectedCities,
+          soundRepeat: soundEnabled ? 'Twice' : 'Off',
+          overlayEnabled,
+          firstRunComplete: true,
+        },
+      });
+    }
   };
 
   return (
@@ -67,18 +82,30 @@ export default function Onboarding() {
             <div className="w-20 h-20 mx-auto rounded-full bg-green-950 border-2 border-green-400 flex items-center justify-center">
               <Shield size={36} className="text-green-400" />
             </div>
-            <h1 className="text-2xl font-black">{t('onboarding.welcome', lang)}</h1>
-            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-              {t('onboarding.description', lang)}
-            </p>
+            <div className="space-y-1">
+              <h1 className="text-2xl font-black">ברוכים הבאים למגן</h1>
+              <h2 className="text-lg text-[var(--text-secondary)]">Welcome to Magen</h2>
+              <h2 className="text-lg text-[var(--text-secondary)]">Добро пожаловать в Маген</h2>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-[var(--text-secondary)] leading-relaxed" dir="rtl">
+                התרעות שולחן עבודה של פיקוד העורף
+              </p>
+              <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                Desktop alerts for Pikud HaOref civil defense warnings
+              </p>
+              <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                Оповещения гражданской обороны Пикуд а-Орэф
+              </p>
+            </div>
             <p className="text-xs text-[var(--text-muted)] italic">
-              {t('disclaimer', lang)}
+              Unofficial tool · כלי לא רשמי · Неофициальный инструмент
             </p>
             <button
               onClick={next}
               className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition-colors"
             >
-              {lang === 'he' ? 'המשך' : lang === 'ru' ? 'Далее' : 'Continue'}
+              Continue · המשך · Далее
             </button>
           </div>
         )}
