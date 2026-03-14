@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Clock, Filter } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { Clock, Filter, ChevronDown } from 'lucide-react';
 import { useAlertStore } from '../store/alertStore';
 import { useCityStore } from '../store/cityStore';
 import { ALERT_TYPE_CONFIG } from '../lib/alertTypes';
@@ -34,6 +34,69 @@ function relativeTime(timestamp: number): string {
   return `${diffDay}d ago`;
 }
 
+function FilterBar({ typeFilter, setTypeFilter, alertTypes, filteredCount, lang }: {
+  typeFilter: string;
+  setTypeFilter: (v: string) => void;
+  alertTypes: string[];
+  filteredCount: number;
+  lang: Language;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const allOptions = [
+    { value: 'all', label: 'All Types' },
+    ...alertTypes.map((type) => {
+      const config = ALERT_TYPE_CONFIG[type] ?? ALERT_TYPE_CONFIG.Unknown;
+      return { value: type, label: t(config.labelKey, lang) };
+    }),
+  ];
+  const current = allOptions.find((o) => o.value === typeFilter);
+
+  return (
+    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[var(--border)] bg-[var(--bg-secondary)]">
+      <Filter size={14} className="text-[var(--text-muted)]" />
+      <div ref={ref} className="relative">
+        <button
+          onClick={() => setOpen(!open)}
+          className="flex items-center gap-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded-md px-2.5 py-1 text-xs text-[var(--text-primary)] hover:border-[var(--text-muted)] transition-colors"
+        >
+          <span>{current?.label ?? 'All Types'}</span>
+          <ChevronDown size={12} className={`text-[var(--text-muted)] transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
+        {open && (
+          <div className="absolute left-0 top-full mt-1 z-50 bg-[var(--bg-card)] border border-[var(--border)] rounded-md shadow-lg shadow-black/40 overflow-hidden min-w-[140px]">
+            {allOptions.map((o) => (
+              <button
+                key={o.value}
+                onClick={() => { setTypeFilter(o.value); setOpen(false); }}
+                className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                  o.value === typeFilter
+                    ? 'bg-green-500/10 text-green-400'
+                    : 'text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <span className="text-[10px] text-[var(--text-muted)] ml-auto">
+        {filteredCount} alert{filteredCount !== 1 ? 's' : ''}
+      </span>
+    </div>
+  );
+}
+
 export default function History({ lang }: Props) {
   const { alertHistory } = useAlertStore();
   const { cityDb } = useCityStore();
@@ -63,25 +126,13 @@ export default function History({ lang }: Props) {
   return (
     <div className="flex flex-col h-full">
       {/* Filter bar */}
-      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[var(--border)] bg-[var(--bg-secondary)]">
-        <Filter size={14} className="text-[var(--text-muted)]" />
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className="bg-[var(--bg-primary)] border border-[var(--border)] rounded-md px-2 py-1 text-xs text-[var(--text-primary)] focus:outline-none focus:border-green-400/50"
-        >
-          <option value="all">All Types</option>
-          {alertTypes.map((type) => {
-            const config = ALERT_TYPE_CONFIG[type] ?? ALERT_TYPE_CONFIG.Unknown;
-            return (
-              <option key={type} value={type}>{t(config.labelKey, lang)}</option>
-            );
-          })}
-        </select>
-        <span className="text-[10px] text-[var(--text-muted)] ml-auto">
-          {filtered.length} alert{filtered.length !== 1 ? 's' : ''}
-        </span>
-      </div>
+      <FilterBar
+        typeFilter={typeFilter}
+        setTypeFilter={setTypeFilter}
+        alertTypes={alertTypes}
+        filteredCount={filtered.length}
+        lang={lang}
+      />
 
       {/* Alert list */}
       <div className="flex-1 overflow-y-auto">
