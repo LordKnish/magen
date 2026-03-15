@@ -31,17 +31,7 @@ export const useAlertStore = create<AlertStore>((set, get) => ({
     if (get().initialized) return;
     set({ initialized: true });
 
-    // Load initial state
-    try {
-      const [active, history, status] = await Promise.all([
-        invoke<Alert[]>('get_active_alerts'),
-        invoke<Alert[]>('get_alert_history'),
-        invoke<ConnectionStatus>('get_connection_status'),
-      ]);
-      set({ activeAlerts: active, alertHistory: history, connectionStatus: status });
-    } catch { /* initial load failure is ok */ }
-
-    // Subscribe to events (only once due to guard above)
+    // Subscribe to events first so we don't miss any
     await listen<Alert>('new-alert', (e) => {
       set((s) => ({
         activeAlerts: [...s.activeAlerts, e.payload],
@@ -60,5 +50,25 @@ export const useAlertStore = create<AlertStore>((set, get) => ({
     await listen<ConnectionStatus>('connection-status-changed', (e) => {
       set({ connectionStatus: e.payload });
     });
+
+    // Load initial state after listeners are set up
+    try {
+      const [active, history, status] = await Promise.all([
+        invoke<Alert[]>('get_active_alerts'),
+        invoke<Alert[]>('get_alert_history'),
+        invoke<ConnectionStatus>('get_connection_status'),
+      ]);
+      set({ activeAlerts: active, alertHistory: history, connectionStatus: status });
+    } catch { /* initial load failure is ok */ }
+
+    // Poll connection status every 10s as fallback
+    setInterval(async () => {
+      try {
+        const status = await invoke<ConnectionStatus>('get_connection_status');
+        if (status !== get().connectionStatus) {
+          set({ connectionStatus: status });
+        }
+      } catch { /* ignore */ }
+    }, 10000);
   },
 }));

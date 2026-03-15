@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useAlertStore } from './store/alertStore';
 import { useSettingsStore } from './store/settingsStore';
 import { useCityStore } from './store/cityStore';
-import Layout from './components/Layout';
+import MapApp from './components/map/MapApp';
 import Onboarding from './views/Onboarding';
 
 export default function App() {
@@ -20,7 +20,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-[var(--bg-primary)]">
+      <div className="flex items-center justify-center h-screen" style={{ background: 'var(--bg-base)' }}>
         <div className="text-[var(--text-muted)]">Loading...</div>
       </div>
     );
@@ -30,5 +30,5 @@ export default function App() {
     return <Onboarding />;
   }
 
-  return <Layout />;
+  return <MapApp />;
 }

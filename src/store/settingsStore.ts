@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
+import type { AlertProfile } from './profileStore';
 
 interface Settings {
   selectedCities: string[];
+  profiles: AlertProfile[];
   language: 'Hebrew' | 'English' | 'Russian';
   theme: 'Auto' | 'Light' | 'Dark';
   soundRepeat: 'Off' | 'Once' | 'Twice' | 'Thrice' | 'Continuous';
@@ -25,6 +27,7 @@ interface SettingsStore {
 
 const defaultSettings: Settings = {
   selectedCities: [],
+  profiles: [],
   language: 'Hebrew',
   theme: 'Auto',
   soundRepeat: 'Twice',
@@ -44,7 +47,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   load: async () => {
     try {
       const settings = await invoke<Settings>('get_settings');
-      set({ settings, loading: false });
+      set({ settings: { ...defaultSettings, ...settings }, loading: false });
     } catch {
       set({ loading: false });
     }

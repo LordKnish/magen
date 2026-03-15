@@ -2,9 +2,10 @@ use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_store::StoreExt;
 use tauri_plugin_autostart::ManagerExt;
 use crate::state::{AppState, ConnectionStatus};
-use crate::models::alert::{Alert, AlertType, AlertState};
+use crate::models::alert::{Alert, AlertType, AlertState, HistoricalAlert};
 use crate::models::city::{City, Zone};
 use crate::models::settings::Settings;
+use crate::models::profile::AlertProfile;
 use crate::error::AppError;
 
 #[tauri::command]
@@ -72,8 +73,60 @@ pub async fn test_alert(app: AppHandle, state: State<'_, AppState>) -> Result<()
     if history.len() > 100 { history.truncate(100); }
     drop(history);
 
-    crate::services::notification::send_notification(&app, &alert);
+    let lang = state.settings.read().await.language.clone();
+    crate::services::notification::send_notification(&app, &alert, &state.cities, &lang);
     let _ = app.emit("new-alert", &alert);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn preview_profile_alert(
+    app: AppHandle,
+    cities: Vec<String>,
+    alert_type: String,
+    do_notify: bool,
+    do_sound: bool,
+    do_overlay: bool,
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    if cities.is_empty() {
+        return Err(AppError::Settings("No cities selected".into()));
+    }
+
+    let settings = state.settings.read().await;
+    let lang = settings.language.clone();
+    let repeat = settings.sound_repeat.clone();
+    drop(settings);
+
+    let parsed_type = AlertType::from_category(&alert_type);
+    let now = chrono::Utc::now().timestamp();
+    let preview_cities: Vec<String> = cities.iter().take(5).cloned().collect();
+
+    let alert = Alert {
+        id: format!("preview-{}", now),
+        alert_type: parsed_type,
+        state: AlertState::Active,
+        cities: preview_cities,
+        title: Some("Preview Alert".to_string()),
+        timestamp: now,
+        expires_at: now + 15,
+    };
+
+    state.active_alerts.write().await.push(alert.clone());
+    let _ = app.emit("new-alert", &alert);
+
+    if do_notify {
+        crate::services::notification::send_notification(&app, &alert, &state.cities, &lang);
+    }
+    if do_overlay {
+        crate::overlay::show_overlay(&app, &[alert.clone()]);
+    }
+    if do_sound {
+        crate::services::sound::play_alert_sound(
+            &alert.alert_type, &alert.state, &lang, &repeat,
+        );
+    }
+
     Ok(())
 }
 
@@ -98,6 +151,46 @@ pub async fn search_cities(query: String, state: State<'_, AppState>) -> Result<
 pub async fn get_polygons() -> Result<serde_json::Value, AppError> {
     let bytes = include_bytes!("../../resources/polygons.json");
     serde_json::from_slice(bytes).map_err(|e| AppError::Api(format!("Failed to parse polygons.json: {}", e)))
+}
+
+const HISTORICAL_URL: &str = "https://www.tzevaadom.co.il/static/historical/all.json";
+
+#[tauri::command]
+pub async fn fetch_historical_alerts(state: State<'_, AppState>) -> Result<Vec<HistoricalAlert>, AppError> {
+    let proxy = state.settings.read().await.proxy_url.clone();
+    let client = crate::services::poller::build_client(proxy.as_deref())?;
+    let response = client.get(HISTORICAL_URL).send().await?;
+    if !response.status().is_success() {
+        return Err(AppError::Api(format!("HTTP {}", response.status())));
+    }
+    let raw: Vec<(i64, u8, Vec<String>, i64)> = response.json().await
+        .map_err(|e| AppError::Api(format!("Failed to parse historical data: {}", e)))?;
+    let alerts: Vec<HistoricalAlert> = raw.into_iter().map(|(id, category, towns, ts)| {
+        HistoricalAlert { id, category, towns, timestamp: ts }
+    }).collect();
+    Ok(alerts)
+}
+
+#[tauri::command]
+pub async fn get_profiles(state: State<'_, AppState>) -> Result<Vec<AlertProfile>, AppError> {
+    Ok(state.settings.read().await.profiles.clone())
+}
+
+#[tauri::command]
+pub async fn save_profiles(
+    app: AppHandle,
+    profiles: Vec<AlertProfile>,
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    let mut settings = state.settings.write().await;
+    settings.profiles = profiles;
+    settings.selected_cities = settings.all_monitored_cities();
+
+    let store = app.store("settings.json")
+        .map_err(|e| AppError::Settings(format!("Failed to open store: {}", e)))?;
+    let value = serde_json::to_value(&*settings)?;
+    store.set("settings", value);
+    Ok(())
 }
 
 #[tauri::command]

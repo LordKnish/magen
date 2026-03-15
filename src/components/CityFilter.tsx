@@ -65,6 +65,17 @@ export default function CityFilter({ selectedCities, onChange, lang }: Props) {
       .filter((z) => z.cities.length > 0);
   }, [zones, search, lang]);
 
+  const allCityValues = useMemo(() => zones.flatMap((z) => z.cities.map(getCityValue)), [zones]);
+  const allSelected = allCityValues.length > 0 && allCityValues.every((v) => selectedSet.has(v));
+
+  const toggleAll = useCallback(() => {
+    if (allSelected) {
+      onChange([]);
+    } else {
+      onChange([...new Set(allCityValues)]);
+    }
+  }, [allSelected, allCityValues, onChange]);
+
   const toggleCity = useCallback((cityValue: string) => {
     if (selectedSet.has(cityValue)) {
       onChange(selectedCities.filter((c) => c !== cityValue));
@@ -111,8 +122,22 @@ export default function CityFilter({ selectedCities, onChange, lang }: Props) {
         />
       </div>
 
-      <div className="text-xs text-[var(--text-muted)]">
-        {selectedCities.length} selected
+      {/* Select All + count */}
+      <div
+        className="flex items-center gap-2 px-3 py-2 rounded-md border border-[var(--border)] bg-[var(--bg-secondary)] cursor-pointer hover:bg-white/5"
+        onClick={toggleAll}
+      >
+        <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
+          allSelected ? 'bg-green-500 border-green-500' : 'border-[var(--text-muted)]'
+        }`}>
+          {allSelected && <Check size={10} className="text-white" />}
+        </div>
+        <span className="text-sm font-medium text-[var(--text-primary)]">
+          {t('settings.selectAll', lang)}
+        </span>
+        <span className="text-xs text-[var(--text-muted)] ml-auto">
+          {selectedCities.length}/{allCityValues.length}
+        </span>
       </div>
 
       {/* Zone list */}

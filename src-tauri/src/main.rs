@@ -27,7 +27,11 @@ async fn polling_loop(app: tauri::AppHandle) {
         match services::poller::fetch_alerts(&client).await {
             Ok(Some(response)) => {
                 backoff_secs = 0;
+                let prev = state.connection_status.read().await.clone();
                 *state.connection_status.write().await = state::ConnectionStatus::Connected;
+                if !matches!(prev, state::ConnectionStatus::Connected) {
+                    let _ = app.emit("connection-status-changed", state::ConnectionStatus::Connected);
+                }
 
                 let result = {
                     let mut dedup = state.dedup_cache.write().await;
@@ -51,19 +55,68 @@ async fn polling_loop(app: tauri::AppHandle) {
                     let mut history = state.alert_history.write().await;
                     history.insert(0, alert.clone());
                     if history.len() > 100 { history.truncate(100); }
-                    services::notification::send_notification(&app, alert);
+
+                    // Profile-aware notification
+                    let settings = state.settings.read().await;
+                    let matched: Vec<String> = settings.profiles.iter()
+                        .filter(|p| {
+                            let city_match = alert.cities.iter().any(|c| p.cities.contains(c));
+                            let type_match = p.alert_types.is_empty() ||
+                                p.alert_types.contains(&format!("{:?}", alert.alert_type));
+                            city_match && type_match
+                        })
+                        .map(|p| p.id.clone())
+                        .collect();
+                    let no_profiles = settings.profiles.is_empty();
+                    let should_notify = no_profiles || matched.iter().any(|id| {
+                        settings.profiles.iter().any(|p| p.id == *id && p.notify)
+                    });
+                    drop(settings);
+
+                    if should_notify || no_profiles {
+                        let s = state.settings.read().await;
+                        let lang_for_notif = s.language.clone();
+                        drop(s);
+                        services::notification::send_notification(&app, alert, &state.cities, &lang_for_notif);
+                    }
+
+                    // Overlay popup
+                    let settings2 = state.settings.read().await;
+                    let should_overlay = no_profiles || matched.iter().any(|id| {
+                        settings2.profiles.iter().any(|p| p.id == *id && p.overlay)
+                    });
+                    if (should_overlay || no_profiles) && settings2.overlay_enabled {
+                        magen_lib::overlay::show_overlay(&app, &[alert.clone()]);
+                    }
+
+                    // Sound
+                    let should_sound = no_profiles || matched.iter().any(|id| {
+                        settings2.profiles.iter().any(|p| p.id == *id && p.sound)
+                    });
+                    if should_sound || no_profiles {
+                        magen_lib::services::sound::play_alert_sound(
+                            &alert.alert_type, &alert.state,
+                            &settings2.language, &settings2.sound_repeat,
+                        );
+                    }
+                    drop(settings2);
+
                     let _ = app.emit("new-alert", alert.clone());
                 }
             }
             Ok(None) => {
                 backoff_secs = 0;
+                let prev = state.connection_status.read().await.clone();
                 *state.connection_status.write().await = state::ConnectionStatus::Connected;
+                if !matches!(prev, state::ConnectionStatus::Connected) {
+                    let _ = app.emit("connection-status-changed", state::ConnectionStatus::Connected);
+                }
             }
             Err(e) => {
                 tracing::warn!("Poll error: {}", e);
                 backoff_secs = (backoff_secs.max(5) * 2).min(30);
                 let msg = e.to_string();
-                if msg.contains("403") || msg.contains("geo") {
+                if msg.contains("403") || msg.contains("geo") || msg.contains("error page") || msg.contains("errorpage") {
                     *state.connection_status.write().await = state::ConnectionStatus::GeoBlocked;
                 } else {
                     *state.connection_status.write().await = state::ConnectionStatus::ConnectionIssue;
@@ -105,12 +158,17 @@ fn main() {
             commands::search_cities,
             commands::get_all_zones,
             commands::get_polygons,
+            commands::fetch_historical_alerts,
+            commands::get_profiles,
+            commands::save_profiles,
+            commands::preview_profile_alert,
         ])
         .setup(|app| {
             // Load persisted settings from store
             if let Ok(store) = app.store("settings.json") {
                 if let Some(val) = store.get("settings") {
-                    if let Ok(settings) = serde_json::from_value::<magen_lib::models::settings::Settings>(val) {
+                    if let Ok(mut settings) = serde_json::from_value::<magen_lib::models::settings::Settings>(val) {
+                        settings.migrate_if_needed();
                         let state = app.state::<AppState>();
                         *state.settings.blocking_write() = settings;
                     }
@@ -118,6 +176,13 @@ fn main() {
             }
 
             tray::setup_tray(app)?;
+
+            // Workaround: WebKitGTK + Vite dev server white screen on Wayland
+            // See https://github.com/tauri-apps/tauri/issues/13885
+            #[cfg(debug_assertions)]
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.eval("setTimeout(() => window.location.reload(), 500)");
+            }
 
             // Intercept window close -> minimize to tray instead of quit
             if let Some(window) = app.get_webview_window("main") {

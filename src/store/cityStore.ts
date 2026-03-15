@@ -50,7 +50,10 @@ export const useCityStore = create<CityStore>((set, get) => ({
           };
         }
       }
-      set({ zones: zones.sort((a, b) => a.name.localeCompare(b.name)), cityDb: db, loaded: true });
+      const filtered = zones
+        .map((z) => ({ ...z, cities: z.cities.filter((c) => c.id !== 0) }))
+        .filter((z) => z.cities.length > 0);
+      set({ zones: filtered.sort((a, b) => a.name.localeCompare(b.name)), cityDb: db, loaded: true });
     } catch {
       set({ loaded: true });
     }

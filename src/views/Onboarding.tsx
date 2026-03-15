@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Shield, Globe, MapPin, Bell, Rocket } from 'lucide-react';
+import { Shield, MapPin, Bell, Rocket } from 'lucide-react';
 import { useSettingsStore } from '../store/settingsStore';
 import CityFilter from '../components/CityFilter';
 import { t, isRtl, type Language } from '../i18n';
@@ -38,22 +38,35 @@ export default function Onboarding() {
   };
 
   const finish = async () => {
+    const profiles = selectedCities.length > 0 ? [{
+      id: 'home',
+      name: lang === 'he' ? 'בית' : lang === 'ru' ? 'Дом' : 'Home',
+      color: '#1D55D0',
+      cities: selectedCities,
+      alertTypes: [] as string[],
+      notify: true,
+      sound: soundEnabled,
+      overlay: overlayEnabled,
+      priority: 1,
+    }] : [];
+
     try {
       await save({
         language: selectedLang,
         selectedCities,
+        profiles,
         soundRepeat: soundEnabled ? 'Twice' : 'Off',
         overlayEnabled,
         firstRunComplete: true,
       });
     } catch (e) {
       console.error('Failed to save settings:', e);
-      // Force the state update even if backend save fails
       useSettingsStore.setState({
         settings: {
           ...settings,
           language: selectedLang,
           selectedCities,
+          profiles,
           soundRepeat: soundEnabled ? 'Twice' : 'Off',
           overlayEnabled,
           firstRunComplete: true,
@@ -117,7 +130,7 @@ export default function Onboarding() {
 
             <button
               onClick={next}
-              className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition-colors mb-4"
+              className="w-full py-3 bg-[#1D55D0] hover:bg-[#4B7BE5] text-white font-bold rounded-lg transition-colors mb-4"
             >
               {lang === 'he' ? 'המשך' : lang === 'ru' ? 'Далее' : 'Continue'}
             </button>
@@ -151,7 +164,7 @@ export default function Onboarding() {
               </button>
               <button
                 onClick={next}
-                className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition-colors"
+                className="flex-1 py-3 bg-[#1D55D0] hover:bg-[#4B7BE5] text-white font-bold rounded-lg transition-colors"
               >
                 {lang === 'he' ? 'המשך' : lang === 'ru' ? 'Далее' : 'Continue'}
               </button>
@@ -213,7 +226,7 @@ export default function Onboarding() {
               </button>
               <button
                 onClick={next}
-                className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition-colors"
+                className="flex-1 py-3 bg-[#1D55D0] hover:bg-[#4B7BE5] text-white font-bold rounded-lg transition-colors"
               >
                 {lang === 'he' ? 'המשך' : lang === 'ru' ? 'Далее' : 'Continue'}
               </button>
@@ -249,7 +262,7 @@ export default function Onboarding() {
               </button>
               <button
                 onClick={finish}
-                className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white font-black rounded-lg transition-colors text-lg"
+                className="flex-1 py-3 bg-[#1D55D0] hover:bg-[#4B7BE5] text-white font-black rounded-lg transition-colors text-lg"
               >
                 {t('onboarding.done', lang)}
               </button>

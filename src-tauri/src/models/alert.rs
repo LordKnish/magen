@@ -59,3 +59,25 @@ pub struct Alert {
     pub timestamp: i64,
     pub expires_at: i64,
 }
+
+/// A single entry from the historical alerts endpoint (tzevaadom)
+/// Raw format: [alertId, categoryCode, townNames[], unixTimestamp]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HistoricalAlert {
+    pub id: i64,
+    pub category: u8,
+    pub towns: Vec<String>,
+    pub timestamp: i64,
+}
+
+impl HistoricalAlert {
+    pub fn alert_type_label(&self) -> &'static str {
+        match self.category {
+            0 => "Missiles",
+            2 => "TerroristInfiltration",
+            5 => "HostileAircraftIntrusion",
+            _ => "Unknown",
+        }
+    }
+}

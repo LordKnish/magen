@@ -6,7 +6,7 @@ use crate::models::alert::{Alert, AlertState, AlertType, OrefResponse};
 use crate::models::city::City;
 
 const DEDUP_WINDOW_SECS: i64 = 120;
-const ALL_CLEAR_DURATION_SECS: i64 = 120;
+const ALL_CLEAR_DURATION_SECS: i64 = 600; // 10 minutes
 const EARLY_WARNING_DURATION_SECS: i64 = 900;
 const ACTIVE_FAILSAFE_SECS: i64 = 3600;
 
@@ -42,6 +42,13 @@ pub fn process_response(
 
     if cat == "10" {
         if title.contains(ALL_CLEAR_MARKER) {
+            // Dedup all-clear by alert_id
+            let ac_key = format!("allclear-{}", alert_id);
+            if dedup_cache.contains_key(&ac_key) {
+                return ProcessResult { new_alerts: vec![], all_clear_zones: vec![], early_warnings: vec![] };
+            }
+            dedup_cache.insert(ac_key, now + ALL_CLEAR_DURATION_SECS);
+
             let zones = extract_zones(data, cities_db);
             info!("All-clear detected for zones: {:?}", zones);
             return ProcessResult { new_alerts: vec![], all_clear_zones: zones, early_warnings: vec![] };
